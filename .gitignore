@@ -1,0 +1,18 @@
+.env
+about.txt
+gravel_execution_plan.md
+design_insp/
+docs/
+
+# Python / Backend
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+*.db
+*.sqlite3
+backend/app/gravel.db
+
+# Node.js / Frontend
+node_modules/
+.next/
