@@ -1,0 +1,101 @@
+.sidebar {
+  width: 260px;
+  background-color: var(--background);
+  border-right: 1px solid var(--panel-border);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem 1rem;
+}
+
+.brand {
+  margin-bottom: 2rem;
+  padding: 0 1rem;
+}
+
+.brand h2 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.25rem;
+}
+
+.version {
+  font-size: 0.7rem;
+  color: var(--accent-muted);
+  font-family: var(--font-mono);
+  letter-spacing: 0.05em;
+}
+
+.shieldStatus {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--success);
+  border-radius: 4px;
+  background-color: rgba(16, 185, 129, 0.05);
+  color: var(--success);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-bottom: 2rem;
+  letter-spacing: 0.05em;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex-grow: 1;
+}
+
+.navItem {
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--accent-muted);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.navItem:hover {
+  color: var(--accent);
+  background-color: var(--panel-bg);
+}
+
+.navItem.active {
+  color: var(--background);
+  background-color: var(--accent);
+  font-weight: 600;
+}
+
+.footer {
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid var(--panel-border);
+}
+
+.userProfile {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.8rem;
+  color: var(--accent-muted);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: color 0.2s;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.userProfile:hover {
+  color: var(--accent);
+}

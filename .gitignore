@@ -16,3 +16,7 @@ backend/app/gravel.db
 # Node.js / Frontend
 node_modules/
 .next/
+
+# Documentation and Notes
+meeting_prep.md
+strip.py
