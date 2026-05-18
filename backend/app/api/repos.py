@@ -1,7 +1,3 @@
-"""
-Repository API: Endpoints for ingesting repos and listing parsed files.
-"""
-
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -17,8 +13,6 @@ from app.services.repo_scanner import scan_repository
 from app.services.ast_parser import parse_file
 
 router = APIRouter()
-
-# ── Request / Response schemas ────────────────────────────────────────
 
 class RepoIngestRequest(BaseModel):
     path: str
@@ -40,22 +34,18 @@ class CodeFileResponse(BaseModel):
     imports: List[str]
     comment_count: int
 
-# ── Endpoints ─────────────────────────────────────────────────────────
-
 @router.post("/ingest", response_model=RepoResponse)
 def ingest_repository(
     req: RepoIngestRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """
-    Ingest a local repository: scan files, parse ASTs, store metadata.
-    """
-    # Validate path exists
+    
+    
     if not os.path.isdir(req.path):
         raise HTTPException(status_code=400, detail=f"Directory not found: {req.path}")
 
-    # Check if this repo is already ingested by this user
+    
     existing = db.query(Repository).filter(
         Repository.local_path == req.path,
         Repository.owner_id == current_user.id,
@@ -63,7 +53,7 @@ def ingest_repository(
     if existing:
         raise HTTPException(status_code=400, detail="Repository already ingested. Delete it first or use a different path.")
 
-    # Create repo record
+    
     repo = Repository(
         name=req.name,
         local_path=req.path,
@@ -73,7 +63,7 @@ def ingest_repository(
     db.commit()
     db.refresh(repo)
 
-    # Scan files
+    
     try:
         file_infos = scan_repository(req.path)
     except ValueError as e:
@@ -81,7 +71,7 @@ def ingest_repository(
         db.commit()
         raise HTTPException(status_code=400, detail=str(e))
 
-    # Parse each file and store
+    
     file_count = 0
     for fi in file_infos:
         try:
@@ -92,7 +82,7 @@ def ingest_repository(
 
             code_file = CodeFile(
                 repo_id=repo.id,
-                file_path=os.path.relpath(fi.path, req.path),  # store relative path
+                file_path=os.path.relpath(fi.path, req.path),  
                 language=fi.language,
                 raw_content=content,
                 ast_metadata_json=json.dumps({
@@ -105,7 +95,7 @@ def ingest_repository(
             db.add(code_file)
             file_count += 1
         except Exception:
-            # Skip files that can't be read/parsed
+            
             continue
 
     db.commit()
@@ -124,9 +114,7 @@ def list_repo_files(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """
-    List all parsed files in a repository with their AST metadata.
-    """
+    
     repo = db.query(Repository).filter(
         Repository.id == repo_id,
         Repository.owner_id == current_user.id,
@@ -156,7 +144,7 @@ def list_repos(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """List all repositories owned by the current user."""
+    
     repos = db.query(Repository).filter(Repository.owner_id == current_user.id).all()
     results = []
     for repo in repos:

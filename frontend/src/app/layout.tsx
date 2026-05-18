@@ -16,7 +16,7 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Gravel - Private AI",
+  title: "Gravel ",
   description: "Privacy-first AI-powered code intelligence platform",
 };
 

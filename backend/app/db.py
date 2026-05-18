@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 _env_path = Path(__file__).resolve().parent.parent.parent / ".env"
 load_dotenv(_env_path)
 
-SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:/
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///gravel.db")
 
 
 if SQLALCHEMY_DATABASE_URL.startswith("postgres://"):

@@ -1,6 +1,6 @@
 .env
 about.txt
-gravel_execution_plan.md
+docs/gravel_execution_plan.md
 design_insp/
 docs/
 
@@ -18,5 +18,13 @@ node_modules/
 .next/
 
 # Documentation and Notes
-meeting_prep.md
+docs/meeting_prep.md
 strip.py
+docs/ultimate_defense_guide.md
+docs/frontend_defense_guide.md
+
+# IDE
+.idea/
+
+# Analysis
+privacy_pivot_analysis.md
