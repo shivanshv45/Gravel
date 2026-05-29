@@ -10,18 +10,47 @@ load_dotenv(_env_path)
 
 from app.api import auth
 from app.api import repos
+from app.api import indexing
+from app.api import search
+from app.api import chat
 from app.middleware.auth import get_current_user
 from app.models.user import User
 from app.models.repository import Repository, CodeFile
+from app.services.vector_store import VectorStore
+from app.services.dp_engine import DPConfig, DPMechanism
+from app.services.privacy_budget import PrivacyBudgetManager
+
+budget_dir = Path(__file__).resolve().parent.parent / "privacy_budgets"
+budget_manager = PrivacyBudgetManager(storage_dir=str(budget_dir))
+
+dp_config = DPConfig(
+    epsilon=float(os.getenv("DP_EPSILON", "1.0")),
+    clip_norm=float(os.getenv("DP_CLIP_NORM", "1.0")),
+    mechanism=DPMechanism(os.getenv("DP_MECHANISM", "laplace")),
+)
+
+vector_store = VectorStore(
+    dp_config=dp_config,
+    budget_manager=budget_manager,
+    retrieval_epsilon=float(os.getenv("DP_RETRIEVAL_EPSILON", "2.0")),
+)
+
+
+def get_vector_store() -> VectorStore:
+    return vector_store
+
+
+def get_budget_manager() -> PrivacyBudgetManager:
+    return budget_manager
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     yield
-   
+
 
 app = FastAPI(title="Gravel API", version="1.0.0", lifespan=lifespan)
 
-# Allow CORS for the frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
@@ -32,15 +61,20 @@ app.add_middleware(
 
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(repos.router, prefix="/api/repos", tags=["repos"])
+app.include_router(indexing.router, prefix="/api/indexing", tags=["indexing"])
+app.include_router(search.router, prefix="/api/search", tags=["search"])
+app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
+
 
 @app.get("/api/health")
 def health_check():
     return {"status": "ok", "service": "Gravel Backend API"}
+
 
 @app.get("/api/me")
 def get_me(current_user: User = Depends(get_current_user)):
     return {
         "id": current_user.id,
         "email": current_user.email,
-        "role": current_user.role
+        "role": current_user.role,
     }
