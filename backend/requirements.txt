@@ -10,3 +10,5 @@ pydantic[email]
 psycopg2-binary
 httpx
 sentence-transformers
+numpy
+cryptography

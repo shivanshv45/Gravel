@@ -20,7 +20,7 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 def run_migrations_offline() -> None:
-    url = os.getenv("DATABASE_URL", "sqlite:/
+    url = os.getenv("DATABASE_URL", "sqlite:///./gravel.db")
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -34,7 +34,7 @@ def run_migrations_offline() -> None:
 def run_migrations_online() -> None:
     
     configuration = config.get_section(config.config_ini_section, {})
-    configuration["sqlalchemy.url"] = os.getenv("DATABASE_URL", "sqlite:/
+    configuration["sqlalchemy.url"] = os.getenv("DATABASE_URL", "sqlite:///./gravel.db")
     connectable = engine_from_config(
         configuration,
         prefix="sqlalchemy.",

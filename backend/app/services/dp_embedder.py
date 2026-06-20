@@ -1,8 +1,12 @@
 import numpy as np
+import logging
+import time
 from typing import List, Optional
 from dataclasses import dataclass, field
 
 from app.services.dp_engine import DPEngine, DPConfig, DPMechanism
+
+logger = logging.getLogger("gravel.embedder")
 
 
 @dataclass
@@ -25,9 +29,15 @@ class DPEmbedder:
 
     def _load_model(self):
         if self._model is None:
+            logger.info("Loading sentence-transformer model '%s'...", self._model_name)
+            t0 = time.time()
             from sentence_transformers import SentenceTransformer
             self._model = SentenceTransformer(self._model_name)
-            self._dimension = self._model.get_sentence_embedding_dimension()
+            try:
+                self._dimension = self._model.get_embedding_dimension()
+            except AttributeError:
+                self._dimension = self._model.get_sentence_embedding_dimension()
+            logger.info("Model loaded in %.1fs (dim=%d)", time.time() - t0, self._dimension)
 
     @property
     def dimension(self) -> int:
@@ -41,7 +51,12 @@ class DPEmbedder:
 
     def embed_raw_batch(self, texts: List[str]) -> np.ndarray:
         self._load_model()
-        return self._model.encode(texts, normalize_embeddings=True, batch_size=32)
+        return self._model.encode(
+            texts,
+            normalize_embeddings=True,
+            batch_size=64,
+            show_progress_bar=False,
+        )
 
     def embed_private(self, text: str) -> EmbeddingResult:
         raw = self.embed_raw(text)
@@ -55,18 +70,52 @@ class DPEmbedder:
         )
 
     def embed_private_batch(self, texts: List[str]) -> List[EmbeddingResult]:
-        raw_batch = self.embed_raw_batch(texts)
-        private_batch = self.dp_engine.privatize_batch(raw_batch)
+        total = len(texts)
+        logger.info("[Embedding] Starting batch embedding of %d chunks...", total)
+
+        # Process in sub-batches to show progress and keep memory under control
+        SUB_BATCH = 64
+        all_raw = []
+        all_private = []
+
+        t0 = time.time()
+        for start in range(0, total, SUB_BATCH):
+            end = min(start + SUB_BATCH, total)
+            batch_texts = texts[start:end]
+
+            raw_batch = self.embed_raw_batch(batch_texts)
+            private_batch = self.dp_engine.privatize_batch(raw_batch)
+
+            all_raw.append(raw_batch)
+            all_private.append(private_batch)
+
+            elapsed = time.time() - t0
+            pct = (end / total) * 100
+            rate = end / elapsed if elapsed > 0 else 0
+            eta = (total - end) / rate if rate > 0 else 0
+            logger.info(
+                "[Embedding] %d/%d chunks (%.0f%%) | %.1f chunks/sec | ETA: %.0fs",
+                end, total, pct, rate, eta,
+            )
+
+        raw_all = np.concatenate(all_raw, axis=0)
+        private_all = np.concatenate(all_private, axis=0)
 
         results = []
-        for i in range(len(texts)):
-            snr = self._compute_snr(raw_batch[i], private_batch[i])
+        for i in range(total):
+            snr = self._compute_snr(raw_all[i], private_all[i])
             results.append(EmbeddingResult(
-                raw=raw_batch[i],
-                private=private_batch[i],
+                raw=raw_all[i],
+                private=private_all[i],
                 epsilon_spent=self.dp_config.epsilon,
                 snr_db=snr,
             ))
+
+        total_time = time.time() - t0
+        logger.info(
+            "[Embedding] Done! %d chunks in %.1fs (%.1f chunks/sec)",
+            total, total_time, total / total_time if total_time > 0 else 0,
+        )
         return results
 
     def _compute_snr(self, raw: np.ndarray, noisy: np.ndarray) -> float:

@@ -8,11 +8,23 @@ from dotenv import load_dotenv
 _env_path = Path(__file__).resolve().parent.parent.parent / ".env"
 load_dotenv(_env_path)
 
+import logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
+    datefmt="%H:%M:%S",
+)
+# Quiet down noisy third-party loggers
+logging.getLogger("sentence_transformers").setLevel(logging.WARNING)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+
 from app.api import auth
 from app.api import repos
 from app.api import indexing
 from app.api import search
 from app.api import chat
+from app.api import config
 from app.middleware.auth import get_current_user
 from app.models.user import User
 from app.models.repository import Repository, CodeFile
@@ -29,10 +41,13 @@ dp_config = DPConfig(
     mechanism=DPMechanism(os.getenv("DP_MECHANISM", "laplace")),
 )
 
+vector_store_dir = Path(__file__).resolve().parent.parent / "vector_data"
+
 vector_store = VectorStore(
     dp_config=dp_config,
     budget_manager=budget_manager,
     retrieval_epsilon=float(os.getenv("DP_RETRIEVAL_EPSILON", "2.0")),
+    storage_dir=str(vector_store_dir),
 )
 
 
@@ -46,6 +61,8 @@ def get_budget_manager() -> PrivacyBudgetManager:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    from app.db import create_tables
+    create_tables()
     yield
 
 
@@ -64,6 +81,7 @@ app.include_router(repos.router, prefix="/api/repos", tags=["repos"])
 app.include_router(indexing.router, prefix="/api/indexing", tags=["indexing"])
 app.include_router(search.router, prefix="/api/search", tags=["search"])
 app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
+app.include_router(config.router, prefix="/api/config", tags=["config"])
 
 
 @app.get("/api/health")

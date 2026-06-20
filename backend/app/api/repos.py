@@ -4,6 +4,9 @@ from pydantic import BaseModel
 from typing import List, Optional
 import json
 import os
+import logging
+
+logger = logging.getLogger("gravel.repos")
 
 from app.db import get_db
 from app.middleware.auth import get_current_user
@@ -64,12 +67,14 @@ def ingest_repository(
     db.refresh(repo)
 
     
+    logger.info("Scanning repository: %s", req.path)
     try:
         file_infos = scan_repository(req.path)
     except ValueError as e:
         db.delete(repo)
         db.commit()
         raise HTTPException(status_code=400, detail=str(e))
+    logger.info("Found %d source files", len(file_infos))
 
     
     file_count = 0
@@ -99,6 +104,7 @@ def ingest_repository(
             continue
 
     db.commit()
+    logger.info("Parsed %d/%d files successfully", file_count, len(file_infos))
 
     return RepoResponse(
         id=repo.id,
@@ -157,3 +163,33 @@ def list_repos(
             file_count=file_count,
         ))
     return results
+
+
+@router.delete("/{repo_id}")
+def delete_repository(
+    repo_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    repo = db.query(Repository).filter(
+        Repository.id == repo_id,
+        Repository.owner_id == current_user.id,
+    ).first()
+    if not repo:
+        raise HTTPException(status_code=404, detail="Repository not found")
+
+    # Delete associated code files
+    db.query(CodeFile).filter(CodeFile.repo_id == repo_id).delete()
+
+    # Clean up vector store
+    try:
+        from app.main import get_vector_store
+        vs = get_vector_store()
+        vs.delete_repo(repo_id)
+    except Exception:
+        pass
+
+    db.delete(repo)
+    db.commit()
+
+    return {"message": f"Repository '{repo.name}' deleted", "repo_id": repo_id}

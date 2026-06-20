@@ -12,6 +12,8 @@ __pycache__/
 *.db
 *.sqlite3
 backend/app/gravel.db
+backend/vector_data/
+backend/privacy_budgets/
 
 # Node.js / Frontend
 node_modules/
@@ -26,5 +28,10 @@ docs/frontend_defense_guide.md
 # IDE
 .idea/
 
-# Analysis
+# Analysis & Planning
 privacy_pivot_analysis.md
+testing_benchmarks_report.md
+backend/testing_benchmarks_report.txt
+backend/test_fixed_cipher.py
+backend/test_full_benchmark.py
+*.log

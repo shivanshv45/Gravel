@@ -3,6 +3,8 @@
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import styles from "./page.module.css";
 
 interface Citation {
@@ -19,6 +21,7 @@ interface Message {
   citations?: Citation[];
   privacy_metadata?: Record<string, any>;
   model?: string;
+  confidence_score?: number;
 }
 
 interface Repo {
@@ -110,6 +113,7 @@ export default function ChatPage() {
         citations: data.citations,
         privacy_metadata: data.privacy_metadata,
         model: data.model,
+        confidence_score: data.privacy_metadata?.cipher_confidence,
       };
 
       setMessages((prev) => [...prev, assistantMsg]);
@@ -152,7 +156,11 @@ export default function ChatPage() {
                 <div className={styles.userMessage}>{msg.content}</div>
               ) : (
                 <div className={styles.assistantMessage}>
-                  <div>{msg.content}</div>
+                  <div className={styles.markdownContent}>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {msg.content}
+                    </ReactMarkdown>
+                  </div>
 
                   {msg.citations && msg.citations.length > 0 && (
                     <div className={styles.citations}>
@@ -168,6 +176,33 @@ export default function ChatPage() {
                   {msg.privacy_metadata && (
                     <div className={styles.privacyBadge}>
                       🛡 ε={msg.privacy_metadata.embedding_epsilon} · {msg.privacy_metadata.dp_mechanism}
+                      {msg.privacy_metadata.cipher_enabled && (
+                        <span> · 🔐 cipher</span>
+                      )}
+                    </div>
+                  )}
+
+                  {msg.confidence_score !== undefined && (
+                    <div className={styles.confidenceBadge}>
+                      <div className={styles.confidenceLabel}>
+                        🎯 Cipher Confidence
+                      </div>
+                      <div className={styles.confidenceBarContainer}>
+                        <div
+                          className={styles.confidenceBarFill}
+                          style={{
+                            width: `${Math.round(msg.confidence_score * 100)}%`,
+                            background: msg.confidence_score >= 0.7
+                              ? 'linear-gradient(90deg, #10b981, #34d399)'
+                              : msg.confidence_score >= 0.3
+                                ? 'linear-gradient(90deg, #f59e0b, #fbbf24)'
+                                : 'linear-gradient(90deg, #ef4444, #f87171)',
+                          }}
+                        />
+                      </div>
+                      <span className={styles.confidenceValue}>
+                        {Math.round(msg.confidence_score * 100)}%
+                      </span>
                     </div>
                   )}
                 </div>
