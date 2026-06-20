@@ -66,15 +66,54 @@
   line-height: 1.7;
 }
 
-.assistantMessage pre {
-  background: var(--background);
+.markdownContent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.markdownContent p {
+  margin: 0;
+}
+
+/* Block code (multiline) */
+.markdownContent pre {
+  background: #1e1e24; /* Darker background for contrast */
   border: 1px solid var(--panel-border);
-  border-radius: 6px;
-  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  padding: 1rem;
   overflow-x: auto;
+  margin: 0.5rem 0;
+}
+
+.markdownContent pre code {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  font-size: 0.85rem;
   font-family: var(--font-mono);
-  font-size: 0.8rem;
-  margin: 0.75rem 0;
+  color: #e2e8f0;
+  white-space: pre;
+}
+
+/* Inline code (single backticks) */
+.markdownContent code {
+  font-family: var(--font-mono);
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.85em;
+  color: var(--accent-blue);
+}
+
+.markdownContent ul, .markdownContent ol {
+  margin: 0;
+  padding-left: 1.5rem;
+}
+
+.markdownContent strong {
+  font-weight: 600;
+  color: var(--accent-blue);
 }
 
 .citations {
@@ -235,4 +274,47 @@
     transform: scale(1);
     opacity: 1;
   }
+}
+
+.confidenceBadge {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.6rem;
+  padding: 0.4rem 0.75rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  width: fit-content;
+}
+
+.confidenceLabel {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--accent-muted);
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+.confidenceBarContainer {
+  width: 80px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.confidenceBarFill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease-out;
+}
+
+.confidenceValue {
+  font-size: 0.7rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--foreground);
+  min-width: 2.5rem;
+  text-align: right;
 }

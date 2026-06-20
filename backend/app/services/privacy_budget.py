@@ -23,7 +23,7 @@ class BudgetEntry:
 @dataclass
 class RepoBudget:
     repo_id: int
-    total_epsilon: float = 10.0
+    total_epsilon: float = 1000.0
     entries: List[BudgetEntry] = field(default_factory=list)
 
     @property
@@ -79,7 +79,7 @@ class PrivacyBudgetManager:
 
     def __init__(self, storage_dir: Optional[str] = None):
         self._budgets: dict[int, RepoBudget] = {}
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._storage_dir = storage_dir
 
         if self._storage_dir:
@@ -117,7 +117,7 @@ class PrivacyBudgetManager:
                 encoding="utf-8",
             )
 
-    def get_or_create(self, repo_id: int, total_epsilon: float = 10.0) -> RepoBudget:
+    def get_or_create(self, repo_id: int, total_epsilon: float = 1000.0) -> RepoBudget:
         with self._lock:
             if repo_id not in self._budgets:
                 self._budgets[repo_id] = RepoBudget(
@@ -134,6 +134,28 @@ class PrivacyBudgetManager:
             entry = budget.spend(epsilon, operation, file_path, chunk_id)
             self._persist(repo_id)
             return entry
+
+    def spend_batch(self, repo_id: int, epsilon_per_op: float,
+                    operations: List[dict]):
+        """Record multiple budget entries with a single disk write."""
+        with self._lock:
+            budget = self.get_or_create(repo_id)
+            total_needed = epsilon_per_op * len(operations)
+            if not budget.can_spend(total_needed):
+                raise PrivacyBudgetExhausted(
+                    f"Budget exhausted for repo {repo_id}. "
+                    f"Remaining: {budget.epsilon_remaining:.6f}, "
+                    f"Requested: {total_needed:.6f}"
+                )
+            for op in operations:
+                budget.spend(
+                    epsilon_per_op,
+                    op.get("operation", "index_chunk"),
+                    op.get("file_path"),
+                    op.get("chunk_id"),
+                )
+            # Single disk write at the end
+            self._persist(repo_id)
 
     def get_status(self, repo_id: int) -> dict:
         with self._lock:

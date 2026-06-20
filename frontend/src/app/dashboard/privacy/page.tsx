@@ -22,6 +22,16 @@ interface Repo {
   file_count: number;
 }
 
+interface ConfigData {
+  dp_epsilon: number;
+  dp_clip_norm: number;
+  dp_mechanism: string;
+  retrieval_epsilon: number;
+  llm_configured: boolean;
+  llm_model: string;
+  default_budget: number;
+}
+
 export default function PrivacyPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -29,6 +39,8 @@ export default function PrivacyPage() {
   const [repos, setRepos] = useState<Repo[]>([]);
   const [budgets, setBudgets] = useState<Map<number, BudgetData>>(new Map());
   const [loading, setLoading] = useState(true);
+  const [config, setConfig] = useState<ConfigData | null>(null);
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -43,6 +55,15 @@ export default function PrivacyPage() {
 
   const loadData = async () => {
     try {
+      // Load config
+      const configRes = await fetch(`${getApiUrl()}/api/config`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      if (configRes.ok) {
+        setConfig(await configRes.json());
+      }
+
+      // Load repos
       const res = await fetch(`${getApiUrl()}/api/repos`, {
         headers: { Authorization: `Bearer ${getToken()}` },
       });
@@ -71,16 +92,21 @@ export default function PrivacyPage() {
     }
   };
 
-  const handleReset = async (repoId: number) => {
+  const handleReset = async (repoId: number, newTotal?: number) => {
     try {
       const res = await fetch(
         `${getApiUrl()}/api/indexing/${repoId}/budget/reset`,
         {
           method: "POST",
-          headers: { Authorization: `Bearer ${getToken()}` },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${getToken()}`,
+          },
+          body: JSON.stringify(newTotal ? { new_total: newTotal } : {}),
         }
       );
       if (res.ok) {
+        setMessage(`Budget reset for repository.`);
         loadData();
       }
     } catch (e) {
@@ -101,13 +127,82 @@ export default function PrivacyPage() {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h1>Privacy Budget</h1>
+        <h1>Privacy Dashboard</h1>
         <p>
           Track your differential privacy epsilon (ε) budget per repository.
           Each indexing operation consumes epsilon. When the budget is exhausted,
-          re-indexing is blocked until an admin resets it.
+          re-indexing is blocked until you reset it.
         </p>
       </div>
+
+      {/* System Status */}
+      {config && (
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+          gap: "1rem",
+          marginBottom: "2rem",
+        }}>
+          <div style={{
+            padding: "1rem",
+            background: "var(--panel-bg, #1a1a2e)",
+            borderRadius: "8px",
+            border: "1px solid var(--panel-border, #333)",
+          }}>
+            <div style={{ fontSize: "0.75rem", color: "var(--accent-muted, #888)", textTransform: "uppercase" }}>DP Mechanism</div>
+            <div style={{ fontSize: "1.25rem", fontWeight: "bold", marginTop: "0.25rem" }}>{config.dp_mechanism}</div>
+            <div style={{ fontSize: "0.8rem", color: "var(--accent-muted, #888)" }}>ε = {config.dp_epsilon} per chunk</div>
+          </div>
+          <div style={{
+            padding: "1rem",
+            background: "var(--panel-bg, #1a1a2e)",
+            borderRadius: "8px",
+            border: "1px solid var(--panel-border, #333)",
+          }}>
+            <div style={{ fontSize: "0.75rem", color: "var(--accent-muted, #888)", textTransform: "uppercase" }}>Clip Norm</div>
+            <div style={{ fontSize: "1.25rem", fontWeight: "bold", marginTop: "0.25rem" }}>{config.dp_clip_norm}</div>
+            <div style={{ fontSize: "0.8rem", color: "var(--accent-muted, #888)" }}>L2 sensitivity bound</div>
+          </div>
+          <div style={{
+            padding: "1rem",
+            background: "var(--panel-bg, #1a1a2e)",
+            borderRadius: "8px",
+            border: "1px solid var(--panel-border, #333)",
+          }}>
+            <div style={{ fontSize: "0.75rem", color: "var(--accent-muted, #888)", textTransform: "uppercase" }}>Retrieval ε</div>
+            <div style={{ fontSize: "1.25rem", fontWeight: "bold", marginTop: "0.25rem" }}>{config.retrieval_epsilon}</div>
+            <div style={{ fontSize: "0.8rem", color: "var(--accent-muted, #888)" }}>Exponential mechanism</div>
+          </div>
+          <div style={{
+            padding: "1rem",
+            background: config.llm_configured ? "var(--panel-bg, #1a1a2e)" : "#2a1a1a",
+            borderRadius: "8px",
+            border: `1px solid ${config.llm_configured ? "var(--panel-border, #333)" : "#5a2020"}`,
+          }}>
+            <div style={{ fontSize: "0.75rem", color: "var(--accent-muted, #888)", textTransform: "uppercase" }}>LLM Status</div>
+            <div style={{ fontSize: "1.25rem", fontWeight: "bold", marginTop: "0.25rem", color: config.llm_configured ? "var(--success, #4caf50)" : "#f44336" }}>
+              {config.llm_configured ? "✓ Connected" : "✗ No API Key"}
+            </div>
+            <div style={{ fontSize: "0.8rem", color: "var(--accent-muted, #888)" }}>
+              {config.llm_configured ? config.llm_model : "Set GROQ_API_KEY in .env"}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {message && (
+        <div style={{
+          padding: "0.75rem 1rem",
+          marginBottom: "1rem",
+          background: "rgba(76, 175, 80, 0.1)",
+          border: "1px solid rgba(76, 175, 80, 0.3)",
+          borderRadius: "6px",
+          color: "var(--success, #4caf50)",
+          fontSize: "0.9rem",
+        }}>
+          {message}
+        </div>
+      )}
 
       <div className={styles.repoList}>
         {repos.length === 0 ? (
@@ -117,17 +212,19 @@ export default function PrivacyPage() {
             const budget = budgets.get(repo.id);
             const pct = budget?.utilization_pct ?? 0;
             const spent = budget?.epsilon_spent ?? 0;
-            const remaining = budget?.epsilon_remaining ?? 10;
-            const total = budget?.total_epsilon ?? 10;
+            const remaining = budget?.epsilon_remaining ?? 1000;
+            const total = budget?.total_epsilon ?? 1000;
             const ops = budget?.num_operations ?? 0;
 
             return (
               <div key={repo.id} className={styles.repoCard}>
                 <div className={styles.repoCardHeader}>
                   <span className={styles.repoName}>{repo.name}</span>
-                  <button className={styles.resetBtn} onClick={() => handleReset(repo.id)}>
-                    Reset Budget
-                  </button>
+                  <div style={{ display: "flex", gap: "0.5rem" }}>
+                    <button className={styles.resetBtn} onClick={() => handleReset(repo.id)}>
+                      Reset Budget
+                    </button>
+                  </div>
                 </div>
 
                 <div className={styles.budgetBar}>
