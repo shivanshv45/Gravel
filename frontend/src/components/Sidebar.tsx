@@ -20,21 +20,17 @@ export function Sidebar() {
     <aside className={styles.sidebar}>
       <div className={styles.brand}>
         <h2>GRAVEL</h2>
-        <span className={styles.version}>v1.0 · DP-ENABLED</span>
+
       </div>
 
-      <div className={styles.shieldStatus}>
-        🛡 PRIVACY SHIELD ACTIVE
-      </div>
 
       <nav className={styles.nav}>
         {navItems.map((item) => (
           <Link
             key={item.path}
             href={item.path}
-            className={`${styles.navItem} ${
-              pathname === item.path ? styles.active : ""
-            }`}
+            className={`${styles.navItem} ${pathname === item.path ? styles.active : ""
+              }`}
           >
             {item.name}
           </Link>

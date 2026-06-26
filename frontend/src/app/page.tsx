@@ -47,7 +47,6 @@ export default function Home() {
     setTimeout(() => {
       setIsProcessing(false);
       setQuery("");
-      alert("Mock: Query processed! (This is a mock UI)");
     }, 1500);
   };
 
@@ -121,9 +120,6 @@ export default function Home() {
           </form>
         </div>
         
-        <div className={styles.mockNotice}>
-          <strong>Note:</strong> Enter any mock details above. Hitting scan will transition you to the chat interface.
-        </div>
       </div>
     );
   }
@@ -131,9 +127,6 @@ export default function Home() {
   
   return (
     <div className={styles.container}>
-      <div className={styles.mockNotice}>
-        <strong>Note:</strong> This chat/intel interface is currently a mock for design layout. It does not actually process queries yet.
-      </div>
 
       <div className={styles.intelGrid}>
         {}
@@ -143,39 +136,7 @@ export default function Home() {
           </div>
 
           <div className={styles.feedContent}>
-            <div className={styles.messageRow}>
-              <div className={styles.userQueryBox}>
-                Analyze the recent authentication failures in cluster gamma. Identify any patterns related to the deprecated v2 API endpoints.
-              </div>
-              <div className={styles.userLabel}>You 👤</div>
-            </div>
-
-            <div className={styles.messageRow}>
-              <div className={styles.aiLabel}>🧠 Gravel Assistant</div>
-              <div className={styles.aiResponseBox}>
-                <p>Analysis complete. Correlated <span className={styles.highlightBlock}>482</span> events across cluster gamma over the last 72 hours.</p>
-                <p>Identified primary vector: Legacy services attempting payload validation against <code className={styles.inlineCode}>/api/v2/auth/token</code> which was aggressively rate-limited post-migration.</p>
-                
-                <div className={styles.aiResponseFooter}>
-                  <span>CONFIDENCE: 98.4%</span>
-                  <span className={styles.actionReq}>Action Required</span>
-                </div>
-              </div>
-            </div>
-
-            <div className={styles.messageRow}>
-              <div className={styles.userQueryBox}>
-                Generate the patch script to redirect those calls to v3, keeping the payload structure intact.
-              </div>
-              <div className={styles.userLabel}>You 👤</div>
-            </div>
-
-             <div className={styles.messageRow}>
-              <div className={styles.aiLabel}>🔄 Processing...</div>
-              <div className={styles.processingBox}>
-                Awaiting input
-              </div>
-            </div>
+            { /* Chat messages will appear here */ }
           </div>
 
           <div className={styles.inputArea}>
@@ -212,44 +173,14 @@ export default function Home() {
 
           <div className={styles.codeView}>
             <pre className={styles.codeBlock}>
-{`{
-  "stream_id": "sys_gamma_auth_fail_0x9A",
-  "timestamp": 1715849201,
-  "anonymized_entities": [
-    {
-      "id": "ENT_001",
-      "type": "ipv4_hash",
-      "val": "[REDACTED_HASH_A]"
-    },
-    {
-      "id": "ENT_002",
-      "type": "service_account",
-      "val": "svc_legacy_importer"
-    }
-  ],
-  "logic_block_generated": {
-    "target": "api_gateway_routes",
-    "action": "REWRITE",
-    "script": "
-      function process_route(req) {
-        if (req.path === '/api/v2/auth/token') {
-          log_event('REDIRECT_V3', req.headers);
-          return redirect('/api/v3/auth/token', 307);
-        }
-        return continue();
-      }
-    "
-  },
-  "privacy_policy_applied": true,
-  "execution_clearance": "PENDING_ADMIN_APPROVAL"
-}`}
+{}
             </pre>
           </div>
           <div className={styles.skeletonFooter}>
             <div className={styles.syncStatus}>
               <span className={styles.syncDot}></span> Synced
             </div>
-            <div className={styles.lineCount}>LINES: 34</div>
+            <div className={styles.lineCount}>LINES: 0</div>
           </div>
         </div>
       </div>

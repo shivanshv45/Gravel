@@ -213,6 +213,46 @@ class ChatPipeline:
                     question, encrypted_chunks, session
                 )
 
+                # -- Full prompt dump (what EXACTLY goes to the LLM) --
+                logger.info("")
+                logger.info("=" * 64)
+                logger.info("[PROMPT SENT] FULL SYSTEM PROMPT (%d chars):", len(system_prompt))
+                logger.info("=" * 64)
+                for line in system_prompt.split("\n"):
+                    logger.info("  %s", line)
+                logger.info("")
+                logger.info("=" * 64)
+                logger.info("[PROMPT SENT] FULL USER PROMPT (%d chars):", len(user_prompt))
+                logger.info("=" * 64)
+                for line in user_prompt.split("\n"):
+                    logger.info("  %s", line)
+                logger.info("")
+                logger.info("[PROMPT SENT] Combined size: %d chars",
+                            len(system_prompt) + len(user_prompt))
+                logger.info("=" * 64)
+
+                # -- Expected validation decryption --
+                logger.info("")
+                logger.info("[EXPECTED] Validation snippet the LLM SHOULD decrypt to:")
+                for line in session.validation_plain.split("\n"):
+                    logger.info("    %s", line)
+                logger.info("")
+
+                # -- Save the entire prompt and expected validation to a file --
+                try:
+                    with open("prompt_dumps.txt", "a", encoding="utf-8") as dump_file:
+                        dump_file.write("=" * 80 + "\n")
+                        dump_file.write(f"SESSION ID: {session.session_id}\n")
+                        dump_file.write("=" * 80 + "\n")
+                        dump_file.write(system_prompt + "\n")
+                        dump_file.write(user_prompt + "\n")
+                        dump_file.write("\n" + "-" * 80 + "\n")
+                        dump_file.write("EXPECTED VALIDATION OUTPUT:\n")
+                        dump_file.write(session.validation_plain + "\n\n")
+                except Exception as e:
+                    logger.warning("Failed to write to prompt_dumps.txt: %s", e)
+
+
                 try:
                     llm_response = self.llm_client.query(
                         system_prompt=system_prompt,
@@ -235,7 +275,25 @@ class ChatPipeline:
                 )
 
                 logger.info("[STEP 6] Parsed answer: %s", answer[:100] if answer else "(empty)")
-                logger.info("[STEP 6] Parsed validation: %s", validation_text[:100] if validation_text else "(empty)")
+                logger.info("[STEP 6] Parsed validation (raw from LLM):")
+                if validation_text:
+                    for line in validation_text.split("\n"):
+                        logger.info("    %s", line)
+                else:
+                    logger.info("    (empty)")
+
+                # -- Decrypt what the LLM returned (in case it responded in cipher) --
+                decrypted_llm_validation = self.cipher.decrypt(validation_text) if validation_text else ""
+                logger.info("[STEP 6] LLM validation -> decrypted with our cipher:")
+                if decrypted_llm_validation:
+                    for line in decrypted_llm_validation.split("\n"):
+                        logger.info("    %s", line)
+                else:
+                    logger.info("    (empty)")
+
+                logger.info("[STEP 6] Expected validation (ground truth):")
+                for line in session.validation_plain.split("\n"):
+                    logger.info("    %s", line)
 
                 score = self.cipher.validate_response(validation_text, session)
                 logger.info("[STEP 6] Validation score (confidence): %.2f (threshold: %.2f)",

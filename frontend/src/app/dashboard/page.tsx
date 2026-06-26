@@ -17,10 +17,10 @@ export default function Dashboard() {
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/auth/login");
-    } else if (status === "authenticated") {
+    } else if (status === "authenticated" && (session as any)?.accessToken) {
       fetchRepos();
     }
-  }, [status, router]);
+  }, [status, router, session]);
 
   const fetchRepos = async () => {
     try {

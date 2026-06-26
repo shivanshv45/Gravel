@@ -45,10 +45,10 @@ export default function ChatPage() {
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/auth/login");
-    } else if (status === "authenticated") {
+    } else if (status === "authenticated" && (session as any)?.accessToken) {
       fetchRepos();
     }
-  }, [status, router]);
+  }, [status, router, session]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -170,39 +170,6 @@ export default function ChatPage() {
                           📄 {c.file_path}:{c.start_line}-{c.end_line}
                         </div>
                       ))}
-                    </div>
-                  )}
-
-                  {msg.privacy_metadata && (
-                    <div className={styles.privacyBadge}>
-                      🛡 ε={msg.privacy_metadata.embedding_epsilon} · {msg.privacy_metadata.dp_mechanism}
-                      {msg.privacy_metadata.cipher_enabled && (
-                        <span> · 🔐 cipher</span>
-                      )}
-                    </div>
-                  )}
-
-                  {msg.confidence_score !== undefined && (
-                    <div className={styles.confidenceBadge}>
-                      <div className={styles.confidenceLabel}>
-                        🎯 Cipher Confidence
-                      </div>
-                      <div className={styles.confidenceBarContainer}>
-                        <div
-                          className={styles.confidenceBarFill}
-                          style={{
-                            width: `${Math.round(msg.confidence_score * 100)}%`,
-                            background: msg.confidence_score >= 0.7
-                              ? 'linear-gradient(90deg, #10b981, #34d399)'
-                              : msg.confidence_score >= 0.3
-                                ? 'linear-gradient(90deg, #f59e0b, #fbbf24)'
-                                : 'linear-gradient(90deg, #ef4444, #f87171)',
-                          }}
-                        />
-                      </div>
-                      <span className={styles.confidenceValue}>
-                        {Math.round(msg.confidence_score * 100)}%
-                      </span>
                     </div>
                   )}
                 </div>
