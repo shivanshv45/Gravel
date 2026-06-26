@@ -19,15 +19,7 @@
   font-size: 1rem;
 }
 
-.mockNotice {
-  background-color: var(--accent-blue-transparent);
-  border: 1px solid var(--accent-blue);
-  color: var(--accent-blue);
-  padding: 1rem;
-  border-radius: 6px;
-  margin-bottom: 2rem;
-  font-size: 0.875rem;
-}
+
 
 .ingestionFormCard {
   background-color: var(--panel-bg);

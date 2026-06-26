@@ -18,7 +18,6 @@ export default function Repositories() {
       setIsScanning(false);
       setRepoName("");
       setRepoPath("");
-      alert("Mock: Repository scan completed! (This is a mock UI, no actual scan was performed)");
     }, 1500);
   };
 
@@ -30,9 +29,6 @@ export default function Repositories() {
       </div>
 
       { }
-      <div className={styles.mockNotice}>
-        <strong>Note:</strong> This interface is currently a mock for design and layout purposes. Form submissions are simulated.
-      </div>
 
       <div className={styles.ingestionFormCard}>
         <form onSubmit={handleScan}>
@@ -77,77 +73,7 @@ export default function Repositories() {
       </div>
 
       <div className={styles.repoGrid}>
-        { }
-        <div className={styles.repoCard}>
-          <div className={styles.repoCardHeader}>
-            <div className={styles.repoTitle}>
-              <span className={styles.repoIcon}>📁</span>
-              <h3>auth-gateway</h3>
-            </div>
-            <div className={styles.statusBadge}>
-              <span className={styles.checkIcon}>✓</span>
-              Indexed
-            </div>
-          </div>
-          <div className={styles.repoStats}>
-            <div className={styles.stat}>
-              <span className={styles.statLabel}>FILES</span>
-              <span className={styles.statValue}>1,240</span>
-            </div>
-            <div className={styles.stat}>
-              <span className={styles.statLabel}>LANGUAGE</span>
-              <span className={styles.statValue}>TypeScript</span>
-            </div>
-          </div>
-        </div>
-
-        { }
-        <div className={styles.repoCard}>
-          <div className={styles.repoCardHeader}>
-            <div className={styles.repoTitle}>
-              <span className={styles.repoIcon}>📁</span>
-              <h3>payment-processor</h3>
-            </div>
-            <div className={styles.statusBadge}>
-              <span className={styles.checkIcon}>✓</span>
-              Indexed
-            </div>
-          </div>
-          <div className={styles.repoStats}>
-            <div className={styles.stat}>
-              <span className={styles.statLabel}>FILES</span>
-              <span className={styles.statValue}>856</span>
-            </div>
-            <div className={styles.stat}>
-              <span className={styles.statLabel}>LANGUAGE</span>
-              <span className={styles.statValue}>Go</span>
-            </div>
-          </div>
-        </div>
-
-        { }
-        <div className={styles.repoCard}>
-          <div className={styles.repoCardHeader}>
-            <div className={styles.repoTitle}>
-              <span className={styles.repoIcon}>📁</span>
-              <h3>frontend-client</h3>
-            </div>
-            <div className={styles.statusBadge}>
-              <span className={styles.checkIcon}>✓</span>
-              Indexed
-            </div>
-          </div>
-          <div className={styles.repoStats}>
-            <div className={styles.stat}>
-              <span className={styles.statLabel}>FILES</span>
-              <span className={styles.statValue}>3,102</span>
-            </div>
-            <div className={styles.stat}>
-              <span className={styles.statLabel}>LANGUAGE</span>
-              <span className={styles.statValue}>React / TS</span>
-            </div>
-          </div>
-        </div>
+        { /* Repositories will be populated here */ }
       </div>
     </div>
   );

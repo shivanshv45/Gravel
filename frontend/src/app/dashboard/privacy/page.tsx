@@ -41,33 +41,56 @@ export default function PrivacyPage() {
   const [loading, setLoading] = useState(true);
   const [config, setConfig] = useState<ConfigData | null>(null);
   const [message, setMessage] = useState("");
+  const [resettingRepo, setResettingRepo] = useState<number | null>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/auth/login");
-    } else if (status === "authenticated") {
+    } else if (status === "authenticated" && (session as any)?.accessToken) {
       loadData();
     }
-  }, [status, router]);
+  }, [status, router, session]);
+
+  // Auto-dismiss success messages
+  useEffect(() => {
+    if (message) {
+      const timer = setTimeout(() => setMessage(""), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [message]);
 
   const getApiUrl = () => process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
   const getToken = () => (session as any)?.accessToken;
 
   const loadData = async () => {
+    const apiUrl = getApiUrl();
+    const token = getToken();
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
+    // Fetch config independently — don't let it block repos
     try {
-      // Load config
-      const configRes = await fetch(`${getApiUrl()}/api/config`, {
-        headers: { Authorization: `Bearer ${getToken()}` },
+      const configRes = await fetch(`${apiUrl}/api/config`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
       if (configRes.ok) {
         setConfig(await configRes.json());
       }
+    } catch (e) {
+      console.error("Failed to load config:", e);
+    }
 
-      // Load repos
-      const res = await fetch(`${getApiUrl()}/api/repos`, {
-        headers: { Authorization: `Bearer ${getToken()}` },
+    // Fetch repos and budgets
+    try {
+      const res = await fetch(`${apiUrl}/api/repos`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) return;
+      if (!res.ok) {
+        setLoading(false);
+        return;
+      }
       const repoData: Repo[] = await res.json();
       setRepos(repoData);
 
@@ -75,8 +98,8 @@ export default function PrivacyPage() {
       for (const repo of repoData) {
         try {
           const budgetRes = await fetch(
-            `${getApiUrl()}/api/indexing/${repo.id}/budget`,
-            { headers: { Authorization: `Bearer ${getToken()}` } }
+            `${apiUrl}/api/indexing/${repo.id}/budget`,
+            { headers: { Authorization: `Bearer ${token}` } }
           );
           if (budgetRes.ok) {
             const b = await budgetRes.json();
@@ -86,13 +109,16 @@ export default function PrivacyPage() {
       }
       setBudgets(budgetMap);
     } catch (e) {
-      console.error(e);
+      console.error("Failed to load repos:", e);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleReset = async (repoId: number, newTotal?: number) => {
+  const handleReset = async (repoId: number) => {
+    if (!confirm("Reset the privacy budget for this repository? This will re-enable indexing.")) return;
+    
+    setResettingRepo(repoId);
     try {
       const res = await fetch(
         `${getApiUrl()}/api/indexing/${repoId}/budget/reset`,
@@ -102,15 +128,18 @@ export default function PrivacyPage() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${getToken()}`,
           },
-          body: JSON.stringify(newTotal ? { new_total: newTotal } : {}),
+          body: JSON.stringify({}),
         }
       );
       if (res.ok) {
-        setMessage(`Budget reset for repository.`);
+        setMessage("Privacy budget reset successfully.");
         loadData();
       }
     } catch (e) {
       console.error(e);
+      setMessage("Failed to reset budget.");
+    } finally {
+      setResettingRepo(null);
     }
   };
 
@@ -120,155 +149,197 @@ export default function PrivacyPage() {
     return "var(--danger)";
   };
 
+  const getStatusLabel = (pct: number) => {
+    if (pct < 50) return { text: "Healthy", className: styles.statusHealthy };
+    if (pct < 80) return { text: "Moderate", className: styles.statusModerate };
+    return { text: "Critical", className: styles.statusCritical };
+  };
+
   if (status === "loading" || loading) {
     return <div className={styles.container}><p>Loading...</p></div>;
   }
+
+  // Aggregate stats
+  const totalBudget = Array.from(budgets.values()).reduce((a, b) => a + b.total_epsilon, 0);
+  const totalSpent = Array.from(budgets.values()).reduce((a, b) => a + b.epsilon_spent, 0);
+  const totalOps = Array.from(budgets.values()).reduce((a, b) => a + b.num_operations, 0);
+  const avgUtilization = budgets.size > 0
+    ? Array.from(budgets.values()).reduce((a, b) => a + b.utilization_pct, 0) / budgets.size
+    : 0;
 
   return (
     <div className={styles.container}>
       <div className={styles.header}>
         <h1>Privacy Dashboard</h1>
         <p>
-          Track your differential privacy epsilon (ε) budget per repository.
-          Each indexing operation consumes epsilon. When the budget is exhausted,
-          re-indexing is blocked until you reset it.
+          Monitor differential privacy epsilon (ε) consumption across your repositories.
+          Each indexing operation consumes epsilon from the budget.
         </p>
       </div>
 
-      {/* System Status */}
-      {config && (
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: "1rem",
-          marginBottom: "2rem",
-        }}>
-          <div style={{
-            padding: "1rem",
-            background: "var(--panel-bg, #1a1a2e)",
-            borderRadius: "8px",
-            border: "1px solid var(--panel-border, #333)",
-          }}>
-            <div style={{ fontSize: "0.75rem", color: "var(--accent-muted, #888)", textTransform: "uppercase" }}>DP Mechanism</div>
-            <div style={{ fontSize: "1.25rem", fontWeight: "bold", marginTop: "0.25rem" }}>{config.dp_mechanism}</div>
-            <div style={{ fontSize: "0.8rem", color: "var(--accent-muted, #888)" }}>ε = {config.dp_epsilon} per chunk</div>
-          </div>
-          <div style={{
-            padding: "1rem",
-            background: "var(--panel-bg, #1a1a2e)",
-            borderRadius: "8px",
-            border: "1px solid var(--panel-border, #333)",
-          }}>
-            <div style={{ fontSize: "0.75rem", color: "var(--accent-muted, #888)", textTransform: "uppercase" }}>Clip Norm</div>
-            <div style={{ fontSize: "1.25rem", fontWeight: "bold", marginTop: "0.25rem" }}>{config.dp_clip_norm}</div>
-            <div style={{ fontSize: "0.8rem", color: "var(--accent-muted, #888)" }}>L2 sensitivity bound</div>
-          </div>
-          <div style={{
-            padding: "1rem",
-            background: "var(--panel-bg, #1a1a2e)",
-            borderRadius: "8px",
-            border: "1px solid var(--panel-border, #333)",
-          }}>
-            <div style={{ fontSize: "0.75rem", color: "var(--accent-muted, #888)", textTransform: "uppercase" }}>Retrieval ε</div>
-            <div style={{ fontSize: "1.25rem", fontWeight: "bold", marginTop: "0.25rem" }}>{config.retrieval_epsilon}</div>
-            <div style={{ fontSize: "0.8rem", color: "var(--accent-muted, #888)" }}>Exponential mechanism</div>
-          </div>
-          <div style={{
-            padding: "1rem",
-            background: config.llm_configured ? "var(--panel-bg, #1a1a2e)" : "#2a1a1a",
-            borderRadius: "8px",
-            border: `1px solid ${config.llm_configured ? "var(--panel-border, #333)" : "#5a2020"}`,
-          }}>
-            <div style={{ fontSize: "0.75rem", color: "var(--accent-muted, #888)", textTransform: "uppercase" }}>LLM Status</div>
-            <div style={{ fontSize: "1.25rem", fontWeight: "bold", marginTop: "0.25rem", color: config.llm_configured ? "var(--success, #4caf50)" : "#f44336" }}>
-              {config.llm_configured ? "✓ Connected" : "✗ No API Key"}
-            </div>
-            <div style={{ fontSize: "0.8rem", color: "var(--accent-muted, #888)" }}>
-              {config.llm_configured ? config.llm_model : "Set GROQ_API_KEY in .env"}
-            </div>
-          </div>
-        </div>
-      )}
-
+      {/* Success message */}
       {message && (
-        <div style={{
-          padding: "0.75rem 1rem",
-          marginBottom: "1rem",
-          background: "rgba(76, 175, 80, 0.1)",
-          border: "1px solid rgba(76, 175, 80, 0.3)",
-          borderRadius: "6px",
-          color: "var(--success, #4caf50)",
-          fontSize: "0.9rem",
-        }}>
-          {message}
+        <div className={styles.successBanner}>
+          <span>✓</span> {message}
         </div>
       )}
 
-      <div className={styles.repoList}>
-        {repos.length === 0 ? (
-          <div className={styles.noRepos}>No repositories found. Ingest a repository first.</div>
-        ) : (
-          repos.map((repo) => {
-            const budget = budgets.get(repo.id);
-            const pct = budget?.utilization_pct ?? 0;
-            const spent = budget?.epsilon_spent ?? 0;
-            const remaining = budget?.epsilon_remaining ?? 1000;
-            const total = budget?.total_epsilon ?? 1000;
-            const ops = budget?.num_operations ?? 0;
-
-            return (
-              <div key={repo.id} className={styles.repoCard}>
-                <div className={styles.repoCardHeader}>
-                  <span className={styles.repoName}>{repo.name}</span>
-                  <div style={{ display: "flex", gap: "0.5rem" }}>
-                    <button className={styles.resetBtn} onClick={() => handleReset(repo.id)}>
-                      Reset Budget
-                    </button>
-                  </div>
-                </div>
-
-                <div className={styles.budgetBar}>
-                  <div className={styles.barTrack}>
-                    <div
-                      className={styles.barFill}
-                      style={{
-                        width: `${Math.min(pct, 100)}%`,
-                        backgroundColor: getBarColor(pct),
-                      }}
-                    />
-                  </div>
-                  <div className={styles.barLabels}>
-                    <span>{pct.toFixed(1)}% used</span>
-                    <span>ε = {total}</span>
-                  </div>
-                </div>
-
-                <div className={styles.statsGrid}>
-                  <div className={styles.statBox}>
-                    <div className={styles.statValue} style={{ color: "var(--success)" }}>
-                      {remaining.toFixed(2)}
-                    </div>
-                    <div className={styles.statLabel}>ε Remaining</div>
-                  </div>
-                  <div className={styles.statBox}>
-                    <div className={styles.statValue} style={{ color: "#f59e0b" }}>
-                      {spent.toFixed(2)}
-                    </div>
-                    <div className={styles.statLabel}>ε Spent</div>
-                  </div>
-                  <div className={styles.statBox}>
-                    <div className={styles.statValue}>{total}</div>
-                    <div className={styles.statLabel}>ε Total</div>
-                  </div>
-                  <div className={styles.statBox}>
-                    <div className={styles.statValue}>{ops}</div>
-                    <div className={styles.statLabel}>Operations</div>
-                  </div>
+      {/* System config cards */}
+      {config && (
+        <div className={styles.configSection}>
+          <h2 className={styles.sectionTitle}>System Configuration</h2>
+          <div className={styles.configGrid}>
+            <div className={styles.configCard}>
+              <div className={styles.configIcon}>ε</div>
+              <div className={styles.configDetails}>
+                <div className={styles.configValue}>{config.dp_epsilon}</div>
+                <div className={styles.configLabel}>Epsilon per Chunk</div>
+                <div className={styles.configSub}>
+                  {config.dp_mechanism.charAt(0).toUpperCase() + config.dp_mechanism.slice(1)} mechanism
                 </div>
               </div>
-            );
-          })
-        )}
+            </div>
+
+            <div className={styles.configCard}>
+              <div className={styles.configIcon}>‖·‖</div>
+              <div className={styles.configDetails}>
+                <div className={styles.configValue}>{config.dp_clip_norm}</div>
+                <div className={styles.configLabel}>L2 Clip Norm</div>
+                <div className={styles.configSub}>Sensitivity bound</div>
+              </div>
+            </div>
+
+            <div className={styles.configCard}>
+              <div className={styles.configIcon}>ε<sub>r</sub></div>
+              <div className={styles.configDetails}>
+                <div className={styles.configValue}>{config.retrieval_epsilon}</div>
+                <div className={styles.configLabel}>Retrieval Epsilon</div>
+                <div className={styles.configSub}>Exponential mechanism</div>
+              </div>
+            </div>
+
+            <div className={`${styles.configCard} ${config.llm_configured ? styles.configCardOk : styles.configCardWarn}`}>
+              <div className={styles.configIcon}>
+                {config.llm_configured ? "✓" : "✗"}
+              </div>
+              <div className={styles.configDetails}>
+                <div className={`${styles.configValue} ${config.llm_configured ? styles.valueOk : styles.valueWarn}`}>
+                  {config.llm_configured ? "Connected" : "Not Connected"}
+                </div>
+                <div className={styles.configLabel}>LLM Status</div>
+                <div className={styles.configSub}>
+                  {config.llm_configured ? config.llm_model : "Set GROQ_API_KEY in .env"}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Aggregate overview */}
+      {repos.length > 0 && (
+        <div className={styles.overviewSection}>
+          <h2 className={styles.sectionTitle}>Budget Overview</h2>
+          <div className={styles.overviewGrid}>
+            <div className={styles.overviewCard}>
+              <div className={styles.overviewValue}>{totalSpent.toFixed(2)}</div>
+              <div className={styles.overviewLabel}>Total ε Spent</div>
+            </div>
+            <div className={styles.overviewCard}>
+              <div className={styles.overviewValue}>{(totalBudget - totalSpent).toFixed(2)}</div>
+              <div className={styles.overviewLabel}>Total ε Remaining</div>
+            </div>
+            <div className={styles.overviewCard}>
+              <div className={styles.overviewValue}>{avgUtilization.toFixed(1)}%</div>
+              <div className={styles.overviewLabel}>Avg Utilization</div>
+            </div>
+            <div className={styles.overviewCard}>
+              <div className={styles.overviewValue}>{totalOps}</div>
+              <div className={styles.overviewLabel}>Total Operations</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Per-repo budgets */}
+      <div className={styles.repoSection}>
+        <h2 className={styles.sectionTitle}>Repository Budgets</h2>
+        <div className={styles.repoList}>
+          {repos.length === 0 ? (
+            <div className={styles.emptyState}>
+              <div className={styles.emptyIcon}>ε</div>
+              <h3>No repositories found</h3>
+              <p>Ingest a repository from the dashboard to start tracking privacy budgets.</p>
+            </div>
+          ) : (
+            repos.map((repo) => {
+              const budget = budgets.get(repo.id);
+              const pct = budget?.utilization_pct ?? 0;
+              const spent = budget?.epsilon_spent ?? 0;
+              const remaining = budget?.epsilon_remaining ?? 1000;
+              const total = budget?.total_epsilon ?? 1000;
+              const ops = budget?.num_operations ?? 0;
+              const statusInfo = getStatusLabel(pct);
+
+              return (
+                <div key={repo.id} className={styles.repoCard}>
+                  <div className={styles.repoCardHeader}>
+                    <div className={styles.repoInfo}>
+                      <span className={styles.repoName}>{repo.name}</span>
+                      <span className={statusInfo.className}>{statusInfo.text}</span>
+                    </div>
+                    <button
+                      className={styles.resetBtn}
+                      onClick={() => handleReset(repo.id)}
+                      disabled={resettingRepo === repo.id}
+                    >
+                      {resettingRepo === repo.id ? "Resetting..." : "Reset Budget"}
+                    </button>
+                  </div>
+
+                  <div className={styles.budgetBar}>
+                    <div className={styles.barTrack}>
+                      <div
+                        className={styles.barFill}
+                        style={{
+                          width: `${Math.min(pct, 100)}%`,
+                          backgroundColor: getBarColor(pct),
+                        }}
+                      />
+                    </div>
+                    <div className={styles.barLabels}>
+                      <span>{pct.toFixed(1)}% used</span>
+                      <span>ε = {total}</span>
+                    </div>
+                  </div>
+
+                  <div className={styles.statsGrid}>
+                    <div className={styles.statBox}>
+                      <div className={styles.statValue} style={{ color: "var(--success)" }}>
+                        {remaining.toFixed(2)}
+                      </div>
+                      <div className={styles.statLabel}>ε Remaining</div>
+                    </div>
+                    <div className={styles.statBox}>
+                      <div className={styles.statValue} style={{ color: "#f59e0b" }}>
+                        {spent.toFixed(2)}
+                      </div>
+                      <div className={styles.statLabel}>ε Spent</div>
+                    </div>
+                    <div className={styles.statBox}>
+                      <div className={styles.statValue}>{total}</div>
+                      <div className={styles.statLabel}>ε Total</div>
+                    </div>
+                    <div className={styles.statBox}>
+                      <div className={styles.statValue}>{ops}</div>
+                      <div className={styles.statLabel}>Operations</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
       </div>
     </div>
   );

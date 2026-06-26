@@ -85,7 +85,7 @@ class LLMClient:
     def query(self, system_prompt: str, user_prompt: str,
               model: Optional[str] = None,
               temperature: float = 0.3,
-              max_tokens: int = 4096,
+              max_tokens: int = 8192,
               response_format: Optional[dict] = None) -> LLMResponse:
 
         if not self.provider:

@@ -21,10 +21,164 @@
   line-height: 1.6;
 }
 
+/* ── Success banner ── */
+
+.successBanner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 8px;
+  color: var(--success);
+  font-size: 0.85rem;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Section titles ── */
+
+.sectionTitle {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent-muted);
+  margin-bottom: 1rem;
+}
+
+/* ── System config ── */
+
+.configGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.75rem;
+}
+
+.configCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.25rem;
+  background: var(--panel-bg);
+  border-radius: 8px;
+  border: 1px solid var(--panel-border);
+  transition: border-color 0.2s;
+}
+
+.configCard:hover {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.configCardOk {
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+.configCardWarn {
+  border-color: rgba(239, 68, 68, 0.2);
+  background: rgba(239, 68, 68, 0.03);
+}
+
+.configIcon {
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--accent-blue);
+  background: rgba(59, 130, 246, 0.08);
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.configCardWarn .configIcon {
+  color: var(--danger);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.configCardOk .configIcon {
+  color: var(--success);
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.configDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.configValue {
+  font-size: 1.2rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.valueOk {
+  color: var(--success);
+}
+
+.valueWarn {
+  color: var(--danger);
+}
+
+.configLabel {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--accent-muted);
+}
+
+.configSub {
+  font-size: 0.7rem;
+  color: var(--accent-muted);
+  opacity: 0.7;
+  font-family: var(--font-mono);
+}
+
+/* ── Aggregate overview ── */
+
+.overviewGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+}
+
+.overviewCard {
+  padding: 1.25rem;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.overviewValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--foreground);
+  margin-bottom: 0.25rem;
+}
+
+.overviewLabel {
+  font-size: 0.7rem;
+  color: var(--accent-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ── Repository list ── */
+
 .repoList {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
 .repoCard {
@@ -32,6 +186,11 @@
   border: 1px solid var(--panel-border);
   border-radius: 8px;
   padding: 1.5rem;
+  transition: border-color 0.2s;
+}
+
+.repoCard:hover {
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .repoCardHeader {
@@ -41,9 +200,54 @@
   margin-bottom: 1.25rem;
 }
 
+.repoInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 .repoName {
   font-size: 1.1rem;
   font-weight: 600;
+}
+
+.statusHealthy {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  color: var(--success);
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.statusModerate {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.statusCritical {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  color: var(--danger);
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
 }
 
 .resetBtn {
@@ -60,10 +264,17 @@
   letter-spacing: 0.05em;
 }
 
-.resetBtn:hover {
+.resetBtn:hover:not(:disabled) {
   background: var(--danger);
   color: #fff;
 }
+
+.resetBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Budget bar ── */
 
 .budgetBar {
   margin-bottom: 1.25rem;
@@ -81,7 +292,7 @@
 .barFill {
   height: 100%;
   border-radius: 4px;
-  transition: width 0.5s ease;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .barLabels {
@@ -92,10 +303,12 @@
   color: var(--accent-muted);
 }
 
+/* ── Stats grid ── */
+
 .statsGrid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .statBox {
@@ -120,9 +333,64 @@
   letter-spacing: 0.06em;
 }
 
+/* ── Empty state ── */
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+  gap: 0.75rem;
+}
+
+.emptyIcon {
+  font-size: 2.5rem;
+  font-family: var(--font-mono);
+  color: var(--accent-muted);
+  opacity: 0.5;
+  margin-bottom: 0.5rem;
+}
+
+.emptyState h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.emptyState p {
+  font-size: 0.85rem;
+  color: var(--accent-muted);
+  max-width: 400px;
+  line-height: 1.5;
+}
+
 .noRepos {
   text-align: center;
   color: var(--accent-muted);
   padding: 3rem 0;
   font-size: 0.875rem;
+}
+
+/* ── Responsive ── */
+
+@media (max-width: 768px) {
+  .configGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .overviewGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .statsGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .repoCardHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
 }

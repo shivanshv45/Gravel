@@ -259,16 +259,7 @@
   overflow: hidden;
 }
 
-.mockNotice {
-  background-color: var(--accent-blue-transparent);
-  border: 1px solid var(--accent-blue);
-  color: var(--accent-blue);
-  padding: 0.75rem 1rem;
-  border-radius: 6px;
-  margin-bottom: 1rem;
-  font-size: 0.875rem;
-  flex-shrink: 0;
-}
+
 
 .intelGrid {
   display: flex;
